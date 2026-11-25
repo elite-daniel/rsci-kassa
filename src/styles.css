@@ -1,0 +1,169 @@
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/barlow-condensed/600.css';
+@import '@fontsource/barlow-condensed/800.css';
+
+/* Design-Tokens nach rsci.at */
+:root {
+  --red: #e1141e;
+  --red-dark: #b00d16;
+  --ink: #0b0b0d;
+  --ink-2: #151519;
+  --ink-3: #1f1f25;
+  --paper: #f6f5f2;
+  --white: #fff;
+  --text: #17171b;
+  --muted: #6b6b75;
+  --line: rgba(0, 0, 0, 0.09);
+  --ok: #1f7a34;
+  --radius: 18px;
+  --display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --header-h: 64px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  font: 16px/1.5 var(--body);
+  color: var(--text);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  /* Kassa-Bedienung: kein Text markieren, kein Doppeltipp-Zoom */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  overscroll-behavior: none;
+}
+
+input,
+select,
+textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--display);
+  font-weight: 800;
+  line-height: 0.95;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.eyebrow {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  min-height: 48px;
+  padding: 0.7em 1.4em;
+  border: 2px solid var(--red);
+  border-radius: 999px;
+  background: var(--red);
+  color: var(--white);
+  font: 700 0.95rem var(--body);
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  transition:
+    transform 0.15s,
+    background 0.15s;
+}
+.btn:active {
+  transform: scale(0.97);
+  background: var(--red-dark);
+  border-color: var(--red-dark);
+}
+.btn:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.btn--ghost {
+  background: transparent;
+  border-color: currentColor;
+  color: inherit;
+}
+.btn--ghost:active {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: currentColor;
+}
+.btn--dark {
+  background: var(--ink-2);
+  border-color: var(--ink-2);
+}
+.btn--sm {
+  min-height: 40px;
+  padding: 0.45em 1em;
+  font-size: 0.85rem;
+}
+
+.card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.field input,
+.field select {
+  font: 500 1.05rem var(--body);
+  color: var(--text);
+  padding: 0.65rem 0.9rem;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+  min-height: 48px;
+}
+.field input:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--red);
+}
+
+:focus-visible {
+  outline: 3px solid var(--red);
+  outline-offset: 2px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}

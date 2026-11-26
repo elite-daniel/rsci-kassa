@@ -46,6 +46,7 @@ const LEERE_KATEGORIE: KategorieEntwurf = { id: null, sonstiges: false, bezeichn
             <button (click)="ziffer('0')">0</button>
             <button (click)="pinEingabe.set(pinEingabe().slice(0, -1))" aria-label="Löschen">⌫</button>
           </div>
+          <p class="version">Version {{ version }}</p>
         </div>
       </div>
     } @else {
@@ -333,6 +334,8 @@ const LEERE_KATEGORIE: KategorieEntwurf = { id: null, sonstiges: false, bezeichn
             }
           </section>
         </div>
+
+        <p class="version">Version {{ version }}</p>
       </div>
     }
   `,
@@ -341,6 +344,13 @@ const LEERE_KATEGORIE: KategorieEntwurf = { id: null, sonstiges: false, bezeichn
       display: block;
       height: 100%;
       overflow-y: auto;
+    }
+
+    .version {
+      margin: 0.75rem 0 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
     }
 
     /* ---------- PIN ---------- */
@@ -662,6 +672,7 @@ export default class EinstellungenPage {
   protected readonly farben = FARBEN;
   protected readonly euro = euro;
   protected readonly sonstiges = SONSTIGES;
+  protected readonly version = __VERSION__;
 
   protected readonly entsperrt = signal(false);
   protected readonly pinEingabe = signal('');

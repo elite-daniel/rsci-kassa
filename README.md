@@ -11,17 +11,25 @@ Begriffe stehen im [Glossar](GLOSSARY.md), Architekturentscheidungen in [docs/ad
 1. Am Tablet in Chrome die Live-Adresse öffnen (Internet nötig).
 2. Menü ⋮ → **„App installieren“** bzw. **„Zum Startbildschirm hinzufügen“**.
 3. Die Kassa über das neue Symbol starten. Ab jetzt läuft sie **ohne Internet**.
-4. Zahnrad → PIN **0000** → gleich unten eine eigene PIN festlegen und die Artikel anpassen.
+4. Zahnrad → PIN **0000** → gleich unten eine eigene PIN festlegen.
 
-Artikel, PIN und der aktuelle Gast liegen **nur auf diesem Tablet** (im Browser-Speicher der App).
+Ab Werk ist der **Standard** aktiv. Alle Tablets haben damit dieselben Artikel.
 
-## Artikel auf ein anderes Tablet übertragen
+## Standard und Profile
 
-Einstellungen → **Exportieren (JSON)**. Die Datei aufs andere Tablet bringen (Mail, USB, Cloud) und dort Einstellungen → **Importieren…**. Die Liste wird dabei ersetzt.
+- **Standard**: [src/app/kassa/standard.json](src/app/kassa/standard.json). Er gilt für alle Tablets und kann nur hier im Repo geändert werden. Nach dem Push auf `main` kommt er mit dem nächsten Update auf die Tablets.
+- **Profile**: Eigene Artikellisten auf einem Tablet, z. B. für eine Veranstaltung (Einstellungen → Profil → **Neues Profil**). Ein Profil startet als Kopie des Standards und ist danach unabhängig. **Aus Standard laden** setzt es wieder auf den aktuellen Standard zurück.
+- Wer bei aktivem Standard einen Artikel ändert, wird gefragt, ob ein neues Profil angelegt werden soll.
 
-> ⚠️ Wird die App deinstalliert, die Browserdaten gelöscht oder die Adresse geändert (z. B. Umzug auf eine eigene Domain), sind Artikel und PIN weg. Deshalb nach Änderungen kurz exportieren.
+Profile, PIN und der aktuelle Gast liegen **nur auf diesem Tablet** (im Browser-Speicher der App). Siehe [ADR 0002](docs/adr/0002-standard-im-repo-profile-am-geraet.md).
 
-**PIN vergessen?** App-Speicher löschen (Chrome → Website-Einstellungen → Daten löschen). Danach gilt wieder 0000 mit den Beispielartikeln, also vorher Artikel exportieren.
+## Profil auf ein anderes Tablet übertragen
+
+Einstellungen → **Exportieren (JSON)**. Die Datei aufs andere Tablet bringen (Mail, USB, Cloud) und dort Einstellungen → **Importieren…**. Ist dort ein Profil aktiv, wird sein Inhalt ersetzt. Ist der Standard aktiv, entsteht ein neues Profil.
+
+> ⚠️ Wird die App deinstalliert, die Browserdaten gelöscht oder die Adresse geändert (z. B. Umzug auf eine eigene Domain), sind Profile und PIN weg. Der Standard bleibt, weil er mit der App kommt.
+
+**PIN vergessen?** App-Speicher löschen (Chrome → Website-Einstellungen → Daten löschen). Danach gilt wieder 0000 mit dem Standard, also vorher Profile exportieren.
 
 ## Updates
 

@@ -52,7 +52,7 @@ const LEERE_KATEGORIE: KategorieEntwurf = { id: null, sonstiges: false, bezeichn
       <div class="inhalt">
         <div class="titel">
           <div>
-            <p class="eyebrow">Einstellungen</p>
+            <p class="eyebrow">Einstellungen · {{ store.aktiverName() }}</p>
             <h2>Artikel</h2>
           </div>
           <a class="btn btn--dark" routerLink="/">Fertig – zur Kassa</a>
@@ -60,6 +60,53 @@ const LEERE_KATEGORIE: KategorieEntwurf = { id: null, sonstiges: false, bezeichn
 
         @if (store.istStandardPin()) {
           <p class="warnung">Die PIN ist noch <b>0000</b>. Bitte unten eine eigene PIN festlegen.</p>
+        }
+
+        <!-- Profile -->
+        <section class="card block">
+          <h3>Profil</h3>
+          <p>
+            Das aktive Profil erscheint an der Kassa. Der <b>Standard</b> wird zentral gepflegt, kommt mit jedem Update
+            und kann hier nicht geändert werden. Ein neues Profil startet als Kopie des Standards.
+          </p>
+          <ul class="liste profile-liste">
+            <li [class.aktiv]="store.standardAktiv()">
+              <span class="info">
+                <b>Standard</b>
+                <small>zentral gepflegt · nur lesbar · {{ store.standard.artikel.length }} Artikel</small>
+              </span>
+              @if (store.standardAktiv()) {
+                <span class="marke">Aktiv</span>
+              } @else {
+                <button class="btn btn--sm btn--ghost" (click)="profilAktivieren(null)">Aktivieren</button>
+              }
+            </li>
+            @for (p of store.profile(); track p.id) {
+              <li [class.aktiv]="store.aktivesProfil()?.id === p.id">
+                <span class="info">
+                  <b>{{ p.name }}</b>
+                  <small>{{ p.artikel.length }} Artikel</small>
+                </span>
+                @if (store.aktivesProfil()?.id === p.id) {
+                  <span class="marke">Aktiv</span>
+                } @else {
+                  <button class="btn btn--sm btn--ghost" (click)="profilAktivieren(p.id)">Aktivieren</button>
+                }
+                <button class="btn btn--sm btn--ghost" (click)="profilUmbenennen(p.id, p.name)">Umbenennen</button>
+                <button class="btn btn--sm btn--ghost" (click)="profilAusStandardLaden(p.id, p.name)">Aus Standard laden</button>
+                <button class="btn btn--sm btn--ghost loeschen" (click)="profilLoeschen(p.id, p.name)">Löschen</button>
+              </li>
+            }
+          </ul>
+          <div class="aktionen">
+            <button class="btn btn--dark" (click)="neuesProfil()">Neues Profil</button>
+          </div>
+        </section>
+
+        @if (store.standardAktiv()) {
+          <p class="hinweis-standard">
+            Der <b>Standard</b> ist aktiv. Wer unten etwas ändert, legt damit ein neues Profil an.
+          </p>
         }
 
         <!-- Artikel-Editor -->
@@ -142,8 +189,8 @@ const LEERE_KATEGORIE: KategorieEntwurf = { id: null, sonstiges: false, bezeichn
                     }
                   </small>
                 </span>
-                <button class="icon" [disabled]="erster" (click)="store.verschieben(a.id, -1)" aria-label="Nach oben">↑</button>
-                <button class="icon" [disabled]="letzter" (click)="store.verschieben(a.id, 1)" aria-label="Nach unten">↓</button>
+                <button class="icon" [disabled]="erster" (click)="verschieben(a.id, -1)" aria-label="Nach oben">↑</button>
+                <button class="icon" [disabled]="letzter" (click)="verschieben(a.id, 1)" aria-label="Nach unten">↓</button>
                 <button class="btn btn--sm btn--ghost" (click)="bearbeiten(a)">Bearbeiten</button>
                 <button class="btn btn--sm btn--ghost loeschen" (click)="loeschen(a)">Löschen</button>
               </li>
@@ -160,7 +207,7 @@ const LEERE_KATEGORIE: KategorieEntwurf = { id: null, sonstiges: false, bezeichn
             <input
               type="checkbox"
               [checked]="store.kategorienEinstellung().aktiv"
-              (change)="kategorienSchalten($any($event.target).checked)"
+              (change)="kategorienSchalten($any($event.target))"
             />
             Kategorien verwenden
             <small>Artikel Kategorien zuordnen und an der Kassa danach gruppieren.</small>
@@ -170,7 +217,7 @@ const LEERE_KATEGORIE: KategorieEntwurf = { id: null, sonstiges: false, bezeichn
               <input
                 type="checkbox"
                 [checked]="store.kategorienEinstellung().titelAnzeigen"
-                (change)="store.kategorienEinstellen({ titelAnzeigen: $any($event.target).checked })"
+                (change)="titelSchalten($any($event.target))"
               />
               Kategorietitel anzeigen
               <small>Aus: Die Artikel bleiben gruppiert, nur ohne Überschrift.</small>
@@ -184,8 +231,8 @@ const LEERE_KATEGORIE: KategorieEntwurf = { id: null, sonstiges: false, bezeichn
                     <b>{{ k.bezeichnung }}</b>
                     <small>{{ store.anzahlArtikelIn(k.id) }} Artikel</small>
                   </span>
-                  <button class="icon" [disabled]="erster" (click)="store.kategorieVerschieben(k.id, -1)" aria-label="Nach oben">↑</button>
-                  <button class="icon" [disabled]="letzter" (click)="store.kategorieVerschieben(k.id, 1)" aria-label="Nach unten">↓</button>
+                  <button class="icon" [disabled]="erster" (click)="kategorieVerschieben(k.id, -1)" aria-label="Nach oben">↑</button>
+                  <button class="icon" [disabled]="letzter" (click)="kategorieVerschieben(k.id, 1)" aria-label="Nach unten">↓</button>
                   <button class="btn btn--sm btn--ghost" (click)="kategorieBearbeiten(k)">Bearbeiten</button>
                   <button class="btn btn--sm btn--ghost loeschen" (click)="kategorieLoeschen(k)">Löschen</button>
                 </li>
@@ -249,7 +296,10 @@ const LEERE_KATEGORIE: KategorieEntwurf = { id: null, sonstiges: false, bezeichn
         <div class="unten">
           <section class="card block">
             <h3>Artikel übertragen</h3>
-            <p>Artikelliste als Datei sichern oder auf einer anderen Kassa einlesen. Beim Einlesen wird die aktuelle Liste ersetzt.</p>
+            <p>
+              Artikelliste als Datei sichern oder auf einer anderen Kassa einlesen. Das Einlesen ersetzt das aktive Profil.
+              Ist der Standard aktiv, entsteht ein neues Profil.
+            </p>
             <div class="aktionen">
               <button class="btn btn--dark" (click)="exportieren()">Exportieren (JSON)</button>
               <label class="btn btn--ghost">
@@ -380,6 +430,29 @@ const LEERE_KATEGORIE: KategorieEntwurf = { id: null, sonstiges: false, bezeichn
     h3 {
       font-size: 1.5rem;
       margin-bottom: 0.75rem;
+    }
+    .hinweis-standard {
+      margin: 0;
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+    }
+    .profile-liste {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      margin: 0 0 1rem;
+    }
+    .profile-liste li.aktiv {
+      background: #fff6f6;
+    }
+    .marke {
+      padding: 0.3rem 0.8rem;
+      border-radius: 999px;
+      background: var(--red);
+      color: var(--white);
+      font-weight: 700;
+      font-size: 0.85rem;
     }
     .warnung {
       margin: 0;
@@ -649,10 +722,87 @@ export default class EinstellungenPage {
     this.entwurf.set({ ...e, kategorieId, farbe: k?.farbe ?? this.store.kategorienEinstellung().sonstigesFarbe });
   }
 
-  protected kategorienSchalten(aktiv: boolean): void {
-    this.store.kategorienEinstellen({ aktiv });
+  // ---------- Profile ----------
+
+  /** Nach einem Profilwechsel passen offene Entwürfe nicht mehr zum Inhalt. */
+  private nachWechsel(): void {
+    this.neuerEntwurf();
+    this.neueKategorie();
+    this.importMeldung.set('');
+  }
+
+  private profilNameFragen(vorschlag: string): string | null {
+    const name = prompt('Name des Profils (z. B. Sommerfest)', vorschlag)?.trim();
+    return name ? name.slice(0, 40) : null;
+  }
+
+  protected neuesProfil(): void {
+    const name = this.profilNameFragen('Neues Profil');
+    if (!name) return;
+    this.store.profilAnlegen(name);
+    this.nachWechsel();
+  }
+
+  protected profilAktivieren(id: string | null): void {
+    this.store.profilAktivieren(id);
+    this.nachWechsel();
+  }
+
+  protected profilUmbenennen(id: string, alt: string): void {
+    const name = this.profilNameFragen(alt);
+    if (name) this.store.profilUmbenennen(id, name);
+  }
+
+  protected profilAusStandardLaden(id: string, name: string): void {
+    if (!confirm(`Artikel und Kategorien von „${name}“ durch den aktuellen Standard ersetzen?`)) return;
+    this.store.profilAusStandardLaden(id);
+    if (this.store.aktivesProfil()?.id === id) this.nachWechsel();
+  }
+
+  protected profilLoeschen(id: string, name: string): void {
+    const aktiv = this.store.aktivesProfil()?.id === id;
+    if (!confirm(`Profil „${name}“ löschen?${aktiv ? ' Danach ist der Standard aktiv.' : ''}`)) return;
+    this.store.profilLoeschen(id);
+    if (aktiv) this.nachWechsel();
+  }
+
+  /** Der Standard ist am Gerät nur lesbar: Vor der ersten Änderung wird ein Profil angelegt.
+   *  Die Ids im neuen Profil sind dieselben wie im Standard, offene Entwürfe passen also weiter. */
+  private bearbeitbar(): boolean {
+    if (!this.store.standardAktiv()) return true;
+    if (!confirm('Der Standard kann hier nicht geändert werden. Neues Profil aus dem Standard anlegen?')) return false;
+    const name = this.profilNameFragen('Neues Profil');
+    if (!name) return false;
+    this.store.profilAnlegen(name);
+    return true;
+  }
+
+  // ---------- Kategorien ----------
+
+  protected kategorienSchalten(schalter: HTMLInputElement): void {
+    if (!this.bearbeitbar()) {
+      schalter.checked = !schalter.checked;
+      return;
+    }
+    this.store.kategorienEinstellen({ aktiv: schalter.checked });
     if (!this.entwurf().id) this.neuerEntwurf();
     this.neueKategorie();
+  }
+
+  protected titelSchalten(schalter: HTMLInputElement): void {
+    if (!this.bearbeitbar()) {
+      schalter.checked = !schalter.checked;
+      return;
+    }
+    this.store.kategorienEinstellen({ titelAnzeigen: schalter.checked });
+  }
+
+  protected kategorieVerschieben(id: string, richtung: -1 | 1): void {
+    if (this.bearbeitbar()) this.store.kategorieVerschieben(id, richtung);
+  }
+
+  protected verschieben(id: string, richtung: -1 | 1): void {
+    if (this.bearbeitbar()) this.store.verschieben(id, richtung);
   }
 
   protected neueKategorie(): void {
@@ -673,6 +823,8 @@ export default class EinstellungenPage {
 
   protected kategorieSpeichern(): void {
     const e = this.kategorieEntwurf();
+    if (!e.sonstiges && !e.bezeichnung.trim()) return this.kategorieFehler.set('Bitte eine Bezeichnung eingeben.');
+    if (!this.bearbeitbar()) return;
     if (e.sonstiges) {
       this.store.kategorienEinstellen({ sonstigesFarbe: e.farbe });
     } else {
@@ -687,6 +839,7 @@ export default class EinstellungenPage {
     const anzahl = this.store.anzahlArtikelIn(k.id);
     const folge = anzahl === 0 ? '' : anzahl === 1 ? ' 1 Artikel verliert seine Kategorie.' : ` ${anzahl} Artikel verlieren ihre Kategorie.`;
     if (!confirm(`Kategorie „${k.bezeichnung}“ löschen?${folge}`)) return;
+    if (!this.bearbeitbar()) return;
     this.store.kategorieLoeschen(k.id);
     if (this.kategorieEntwurf().id === k.id) this.neueKategorie();
     if (this.entwurf().kategorieId === k.id) this.entwurf.set({ ...this.entwurf(), kategorieId: null });
@@ -721,6 +874,7 @@ export default class EinstellungenPage {
     if (!bezeichnung) return this.fehler.set('Bitte eine Bezeichnung eingeben.');
     if (preis === null) return this.fehler.set('Preis ist ungültig – z. B. 4,00 oder -2,00.');
     if (pfand === null || pfand < 0) return this.fehler.set('Pfand ist ungültig – z. B. 2,00 oder leer lassen.');
+    if (!this.bearbeitbar()) return;
 
     // Bei ausgeschalteten Kategorien bleibt die gespeicherte Zuordnung unverändert erhalten.
     const kategorieId = this.store.kategorienEinstellung().aktiv
@@ -732,6 +886,7 @@ export default class EinstellungenPage {
 
   protected loeschen(a: Artikel): void {
     if (!confirm(`„${a.bezeichnung}“ wirklich löschen?`)) return;
+    if (!this.bearbeitbar()) return;
     this.store.loeschen(a.id);
     if (this.entwurf().id === a.id) this.neuerEntwurf();
   }
@@ -754,10 +909,16 @@ export default class EinstellungenPage {
       const daten = artikelAusImport(JSON.parse(await datei.text()));
       const umfang =
         `${daten.artikel.length} Artikel` + (daten.kategorien.length ? ` und ${daten.kategorien.length} Kategorien` : '');
-      if (!confirm(`${umfang} einlesen? Die aktuelle Liste wird ersetzt.`)) return;
-      this.store.ersetzen(daten);
-      this.neuerEntwurf();
-      this.neueKategorie();
+      if (this.store.standardAktiv()) {
+        const name = datei.name.replace(/\.json$/i, '').slice(0, 40) || 'Importiert';
+        if (!confirm(`${umfang} als neues Profil „${name}“ einlesen?`)) return;
+        this.store.profilAnlegen(name, daten);
+      } else {
+        const profil = this.store.aktiverName();
+        if (!confirm(`${umfang} einlesen? Der Inhalt von „${profil}“ wird ersetzt.`)) return;
+        this.store.ersetzen(daten);
+      }
+      this.nachWechsel();
       this.importFehler.set(false);
       this.importMeldung.set(`${umfang} eingelesen.`);
     } catch (e) {

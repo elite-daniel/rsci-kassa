@@ -15,3 +15,11 @@ export function speichern(schluessel: string, wert: unknown): void {
     // Speicher voll oder gesperrt – die Kassa funktioniert trotzdem weiter.
   }
 }
+
+export function entfernen(schluessel: string): void {
+  try {
+    globalThis.localStorage?.removeItem(schluessel);
+  } catch {
+    // egal
+  }
+}

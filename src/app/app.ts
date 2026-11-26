@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { ArtikelStore } from './kassa/artikel-store';
 import { PwaUpdate } from './pwa-update';
 
 @Component({
@@ -20,6 +21,7 @@ import { PwaUpdate } from './pwa-update';
       }
 
       <nav>
+        <span class="profil" title="Aktives Profil">{{ artikel.aktiverName() }}</span>
         <a
           routerLink="/einstellungen"
           routerLinkActive="aktiv"
@@ -78,6 +80,19 @@ import { PwaUpdate } from './pwa-update';
       font-size: 0.75rem;
       display: block;
     }
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .profil {
+      color: rgba(255, 255, 255, 0.8);
+      font-weight: 600;
+      max-width: 14rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .zahnrad {
       display: grid;
       place-items: center;
@@ -98,6 +113,7 @@ import { PwaUpdate } from './pwa-update';
 })
 export class App {
   protected readonly update = inject(PwaUpdate);
+  protected readonly artikel = inject(ArtikelStore);
 
   constructor() {
     void this.update.starten();

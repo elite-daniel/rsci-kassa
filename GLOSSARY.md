@@ -4,7 +4,7 @@
 
 **Artikel**: Etwas, das am Stand verkauft oder zurückgenommen wird. Hat eine Bezeichnung, einen Preis, optional ein Pfand und eine Knopffarbe. Der Preis darf negativ sein.
 
-**Kategorie**: Eine benannte Gruppe von Artikeln (z. B. „Getränke“, „Essen“) mit eigener Farbe und eigener Position in der Reihenfolge der Kategorien. Ein Artikel gehört zu höchstens einer Kategorie. Neue Artikel übernehmen die Farbe ihrer Kategorie als Vorschlag.
+**Kategorie**: Eine benannte Gruppe von Artikeln (z. B. „Getränke“, „Essen“) mit eigener Farbe und eigener Position in der Reihenfolge der Kategorien. Ein Artikel gehört zu höchstens einer Kategorie. Neue Artikel übernehmen die Farbe ihrer Kategorie als Vorschlag. Kategorien gehören wie die Artikel zum Standard bzw. zu einem Profil.
 
 **Sonstiges**: Die Gruppe, in der auf der Kassa alle Artikel ohne Kategorie stehen, immer am Ende. Sie ist keine Kategorie, die man anlegen, umbenennen oder löschen kann. Nur ihre Farbe ist einstellbar.
 
@@ -24,6 +24,14 @@
 
 **Auszahlen**: Ist die Summe negativ (z. B. nur Pfandrückgabe), bekommt der Gast diesen Betrag ausbezahlt.
 
-**Artikelliste (Export)**: Die Artikel als Datei, um sie auf eine andere Kassa zu übertragen. Jede Kassa hat sonst ihre eigenen Artikel.
+**Artikelliste (Export)**: Die Artikel als Datei, um sie auf eine andere Kassa zu übertragen.
+
+**Standard**: Die eine zentral gepflegte Sammlung von Artikeln und Kategorien, die mit der Kassa an alle Geräte ausgeliefert wird. Am Gerät nur lesbar.
+_Avoid_: Vorlage, Standardeinstellung, Default
+
+**Profil**: Eine benannte, am Gerät änderbare Sammlung von Artikeln und Kategorien, z. B. für eine bestimmte Veranstaltung. Entsteht als Kopie des Standards und ist danach unabhängig von ihm.
+_Avoid_: Einstellung, eigene Einstellungen, Veranstaltung
+
+**Aktiv**: Was an der Kassa als Knöpfe erscheint – entweder der Standard oder genau ein Profil. Hat ein Gerät kein Profil, ist der Standard aktiv.
 
 **Einstellungen**: Der PIN-geschützte Bereich, in dem Artikel angelegt, geändert, gelöscht und sortiert werden.

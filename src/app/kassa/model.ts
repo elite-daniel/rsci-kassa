@@ -10,6 +10,8 @@ export const FARBEN = [
   { id: 'gold', name: 'Gold', bg: '#c99a1e', fg: '#17171b' },
   { id: 'gruen', name: 'Grün', bg: '#2f7d3a', fg: '#ffffff' },
   { id: 'blau', name: 'Blau', bg: '#1f4e8c', fg: '#ffffff' },
+  { id: 'orange', name: 'Orange', bg: '#e8740c', fg: '#17171b' },
+  { id: 'lila', name: 'Lila', bg: '#6a3d9a', fg: '#ffffff' },
 ] as const;
 
 export type FarbId = (typeof FARBEN)[number]['id'];

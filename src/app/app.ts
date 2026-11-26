@@ -21,7 +21,9 @@ import { PwaUpdate } from './pwa-update';
       }
 
       <nav>
-        <span class="profil" title="Aktives Profil">{{ artikel.aktiverName() }}</span>
+        @if (artikel.aktivesProfil(); as profil) {
+          <span class="profil" title="Aktives Profil">{{ profil.name }}</span>
+        }
         <a
           routerLink="/einstellungen"
           routerLinkActive="aktiv"

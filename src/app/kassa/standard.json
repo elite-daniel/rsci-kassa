@@ -2,14 +2,19 @@
   "format": "rsci-kassa-artikel",
   "version": 2,
   "artikel": [
-    { "id": "bier", "bezeichnung": "Bier", "preis": 400, "pfand": 200, "farbe": "rot" },
-    { "id": "spritzer", "bezeichnung": "Spritzer", "preis": 350, "pfand": 200, "farbe": "rot" },
-    { "id": "limo", "bezeichnung": "Limo", "preis": 300, "pfand": 200, "farbe": "dunkelrot" },
-    { "id": "wasser", "bezeichnung": "Wasser", "preis": 200, "pfand": 200, "farbe": "blau" },
-    { "id": "wuerstel", "bezeichnung": "Würstel", "preis": 400, "pfand": 0, "farbe": "gold" },
-    { "id": "kaffee", "bezeichnung": "Kaffee", "preis": 250, "pfand": 0, "farbe": "schwarz" },
-    { "id": "becher-retour", "bezeichnung": "Becher retour", "preis": -200, "pfand": 0, "farbe": "grau" }
+    { "id": "bier", "bezeichnung": "Bier", "preis": 450, "pfand": 200, "farbe": "gold", "kategorieId": "getraenke" },
+    { "id": "spritzer", "bezeichnung": "Spritzer", "preis": 400, "pfand": 200, "farbe": "weiss", "kategorieId": "getraenke" },
+    { "id": "limo", "bezeichnung": "Limo", "preis": 300, "pfand": 200, "farbe": "orange", "kategorieId": "getraenke" },
+    { "id": "wasser", "bezeichnung": "Wasser", "preis": 200, "pfand": 200, "farbe": "blau", "kategorieId": "getraenke" },
+    { "id": "wuerstel", "bezeichnung": "Würstel", "preis": 400, "pfand": 0, "farbe": "dunkelrot", "kategorieId": "speisen" },
+    { "id": "toast", "bezeichnung": "Toast", "preis": 500, "pfand": 0, "farbe": "lila", "kategorieId": "speisen" },
+    { "id": "kaffee", "bezeichnung": "Kaffee", "preis": 250, "pfand": 0, "farbe": "schwarz", "kategorieId": "getraenke" },
+    { "id": "becher-retour", "bezeichnung": "Becher retour", "preis": -200, "pfand": 0, "farbe": "grau", "kategorieId": "pfand" }
   ],
-  "kategorien": [],
-  "kategorienEinstellung": { "aktiv": false, "titelAnzeigen": true, "sonstigesFarbe": "grau" }
+  "kategorien": [
+    { "id": "getraenke", "bezeichnung": "Getränke", "farbe": "blau" },
+    { "id": "speisen", "bezeichnung": "Speisen", "farbe": "gruen" },
+    { "id": "pfand", "bezeichnung": "Pfand", "farbe": "grau" }
+  ],
+  "kategorienEinstellung": { "aktiv": true, "titelAnzeigen": true, "sonstigesFarbe": "grau" }
 }

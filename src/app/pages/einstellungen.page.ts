@@ -1,8 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { ArtikelStore, artikelAusImport, neueId } from '../kassa/artikel-store';
-import { Artikel, FARBEN, FarbId, centAlsEingabe, euro, parseEuro } from '../kassa/model';
+import { artikelAusImport, neueId } from '../kassa/artikel-daten';
+import { ArtikelStore } from '../kassa/artikel-store';
+import { Artikel, FARBEN, FarbId, Kategorie, SONSTIGES, centAlsEingabe, euro, farbe, kategorieVon, parseEuro } from '../kassa/model';
 
 interface Entwurf {
   id: string | null;
@@ -10,9 +11,18 @@ interface Entwurf {
   preis: string;
   pfand: string;
   farbe: FarbId;
+  kategorieId: string | null;
 }
 
-const LEERER_ENTWURF: Entwurf = { id: null, bezeichnung: '', preis: '', pfand: '', farbe: 'rot' };
+interface KategorieEntwurf {
+  id: string | null;
+  /** true = es wird nur die Farbe von Sonstiges bearbeitet. */
+  sonstiges: boolean;
+  bezeichnung: string;
+  farbe: FarbId;
+}
+
+const LEERE_KATEGORIE: KategorieEntwurf = { id: null, sonstiges: false, bezeichnung: '', farbe: 'rot' };
 
 @Component({
   selector: 'app-einstellungen',
@@ -72,6 +82,17 @@ const LEERER_ENTWURF: Entwurf = { id: null, bezeichnung: '', preis: '', pfand: '
               <input name="pfand" [(ngModel)]="entwurf().pfand" inputmode="decimal" placeholder="kein Pfand" />
             </label>
           </div>
+          @if (store.kategorienEinstellung().aktiv) {
+            <label class="field kategorie-feld">
+              Kategorie
+              <select name="kategorie" [ngModel]="entwurf().kategorieId" (ngModelChange)="kategorieWaehlen($event)">
+                @for (k of store.kategorien(); track k.id) {
+                  <option [ngValue]="k.id">{{ k.bezeichnung }}</option>
+                }
+                <option [ngValue]="null">Ohne Kategorie ({{ sonstiges }})</option>
+              </select>
+            </label>
+          }
           <div class="field">
             Farbe
             <div class="farben">
@@ -102,27 +123,128 @@ const LEERER_ENTWURF: Entwurf = { id: null, bezeichnung: '', preis: '', pfand: '
 
         <!-- Artikelliste -->
         <ul class="card liste">
-          @for (a of store.artikel(); track a.id; let erster = $first; let letzter = $last) {
-            <li [class.in-bearbeitung]="entwurf().id === a.id">
-              <span class="farbpunkt" [style.background]="farbeVon(a.farbe)"></span>
-              <span class="info">
-                <b>{{ a.bezeichnung }}</b>
-                <small class="tabular">
-                  {{ euro(a.preis) }}
-                  @if (a.pfand) {
-                    · Pfand {{ euro(a.pfand) }}
-                  }
-                </small>
-              </span>
-              <button class="icon" [disabled]="erster" (click)="store.verschieben(a.id, -1)" aria-label="Nach oben">↑</button>
-              <button class="icon" [disabled]="letzter" (click)="store.verschieben(a.id, 1)" aria-label="Nach unten">↓</button>
-              <button class="btn btn--sm btn--ghost" (click)="bearbeiten(a)">Bearbeiten</button>
-              <button class="btn btn--sm btn--ghost loeschen" (click)="loeschen(a)">Löschen</button>
-            </li>
+          @for (g of store.gruppen(); track g.kategorieId) {
+            @if (g.titel) {
+              <li class="gruppen-kopf">
+                <span class="farbpunkt farbpunkt--klein" [style.background]="farbeVon(g.farbe)"></span>
+                {{ g.titel }}
+              </li>
+            }
+            @for (a of g.artikel; track a.id; let erster = $first; let letzter = $last) {
+              <li [class.in-bearbeitung]="entwurf().id === a.id">
+                <span class="farbpunkt" [style.background]="farbeVon(a.farbe)"></span>
+                <span class="info">
+                  <b>{{ a.bezeichnung }}</b>
+                  <small class="tabular">
+                    {{ euro(a.preis) }}
+                    @if (a.pfand) {
+                      · Pfand {{ euro(a.pfand) }}
+                    }
+                  </small>
+                </span>
+                <button class="icon" [disabled]="erster" (click)="store.verschieben(a.id, -1)" aria-label="Nach oben">↑</button>
+                <button class="icon" [disabled]="letzter" (click)="store.verschieben(a.id, 1)" aria-label="Nach unten">↓</button>
+                <button class="btn btn--sm btn--ghost" (click)="bearbeiten(a)">Bearbeiten</button>
+                <button class="btn btn--sm btn--ghost loeschen" (click)="loeschen(a)">Löschen</button>
+              </li>
+            }
           } @empty {
             <li class="leer">Noch keine Artikel.</li>
           }
         </ul>
+
+        <!-- Kategorien -->
+        <section class="card block kategorien">
+          <h3>Kategorien</h3>
+          <label class="schalter">
+            <input
+              type="checkbox"
+              [checked]="store.kategorienEinstellung().aktiv"
+              (change)="kategorienSchalten($any($event.target).checked)"
+            />
+            Kategorien verwenden
+            <small>Artikel Kategorien zuordnen und an der Kassa danach gruppieren.</small>
+          </label>
+          @if (store.kategorienEinstellung().aktiv) {
+            <label class="schalter">
+              <input
+                type="checkbox"
+                [checked]="store.kategorienEinstellung().titelAnzeigen"
+                (change)="store.kategorienEinstellen({ titelAnzeigen: $any($event.target).checked })"
+              />
+              Kategorietitel anzeigen
+              <small>Aus: Die Artikel bleiben gruppiert, nur ohne Überschrift.</small>
+            </label>
+
+            <ul class="liste kategorien-liste">
+              @for (k of store.kategorien(); track k.id; let erster = $first; let letzter = $last) {
+                <li [class.in-bearbeitung]="kategorieEntwurf().id === k.id">
+                  <span class="farbpunkt" [style.background]="farbeVon(k.farbe)"></span>
+                  <span class="info">
+                    <b>{{ k.bezeichnung }}</b>
+                    <small>{{ store.anzahlArtikelIn(k.id) }} Artikel</small>
+                  </span>
+                  <button class="icon" [disabled]="erster" (click)="store.kategorieVerschieben(k.id, -1)" aria-label="Nach oben">↑</button>
+                  <button class="icon" [disabled]="letzter" (click)="store.kategorieVerschieben(k.id, 1)" aria-label="Nach unten">↓</button>
+                  <button class="btn btn--sm btn--ghost" (click)="kategorieBearbeiten(k)">Bearbeiten</button>
+                  <button class="btn btn--sm btn--ghost loeschen" (click)="kategorieLoeschen(k)">Löschen</button>
+                </li>
+              }
+              <li [class.in-bearbeitung]="kategorieEntwurf().sonstiges">
+                <span class="farbpunkt" [style.background]="farbeVon(store.kategorienEinstellung().sonstigesFarbe)"></span>
+                <span class="info">
+                  <b>{{ sonstiges }}</b>
+                  <small>Artikel ohne Kategorie · immer am Ende</small>
+                </span>
+                <button class="btn btn--sm btn--ghost" (click)="sonstigesBearbeiten()">Farbe ändern</button>
+              </li>
+            </ul>
+
+            <form class="kategorie-editor" (ngSubmit)="kategorieSpeichern()">
+              <h4>
+                {{ kategorieEntwurf().sonstiges ? 'Farbe für ' + sonstiges : kategorieEntwurf().id ? 'Kategorie bearbeiten' : 'Neue Kategorie' }}
+              </h4>
+              @if (!kategorieEntwurf().sonstiges) {
+                <label class="field">
+                  Bezeichnung
+                  <input
+                    name="kat-bez"
+                    [(ngModel)]="kategorieEntwurf().bezeichnung"
+                    maxlength="30"
+                    placeholder="z. B. Getränke"
+                  />
+                </label>
+              }
+              <div class="field">
+                Farbe
+                <div class="farben">
+                  @for (f of farben; track f.id) {
+                    <button
+                      type="button"
+                      class="farbfeld"
+                      [style.background]="f.bg"
+                      [class.gewaehlt]="kategorieEntwurf().farbe === f.id"
+                      [attr.aria-label]="f.name"
+                      [title]="f.name"
+                      (click)="kategorieEntwurf.set({ ...kategorieEntwurf(), farbe: f.id })"
+                    ></button>
+                  }
+                </div>
+              </div>
+              @if (kategorieFehler()) {
+                <p class="fehler">{{ kategorieFehler() }}</p>
+              }
+              <div class="aktionen">
+                <button type="submit" class="btn btn--dark">
+                  {{ kategorieEntwurf().id || kategorieEntwurf().sonstiges ? 'Änderungen speichern' : 'Kategorie hinzufügen' }}
+                </button>
+                @if (kategorieEntwurf().id || kategorieEntwurf().sonstiges) {
+                  <button type="button" class="btn btn--ghost" (click)="neueKategorie()">Abbrechen</button>
+                }
+              </div>
+            </form>
+          }
+        </section>
 
         <div class="unten">
           <section class="card block">
@@ -381,6 +503,67 @@ const LEERER_ENTWURF: Entwurf = { id: null, bezeichnung: '', preis: '', pfand: '
       color: var(--red);
     }
 
+    .liste .gruppen-kopf {
+      gap: 0.5rem;
+      padding: 0.45rem 1rem;
+      background: var(--paper);
+      font-family: var(--display);
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .farbpunkt--klein {
+      width: 14px;
+      height: 14px;
+    }
+    .kategorie-feld {
+      max-width: 360px;
+      margin-bottom: 0.75rem;
+    }
+    .kategorie-feld select {
+      min-height: 48px;
+      border-radius: 12px;
+      border: 2px solid var(--line);
+      background: var(--white);
+      padding: 0 0.75rem;
+      font: inherit;
+    }
+    .schalter {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      column-gap: 0.75rem;
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+    }
+    .schalter input {
+      grid-row: span 2;
+      width: 26px;
+      height: 26px;
+      accent-color: var(--red);
+    }
+    .schalter small {
+      color: var(--muted);
+      font-weight: 400;
+    }
+    .kategorien-liste {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      margin: 0.5rem 0 1rem;
+    }
+    .kategorie-editor {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .kategorie-editor .field:first-of-type {
+      max-width: 360px;
+    }
+    h4 {
+      margin: 0;
+      font-size: 1.15rem;
+    }
+
     .unten {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -405,13 +588,17 @@ export default class EinstellungenPage {
   protected readonly store = inject(ArtikelStore);
   protected readonly farben = FARBEN;
   protected readonly euro = euro;
+  protected readonly sonstiges = SONSTIGES;
 
   protected readonly entsperrt = signal(false);
   protected readonly pinEingabe = signal('');
   protected readonly pinFalsch = signal(false);
 
-  protected readonly entwurf = signal<Entwurf>({ ...LEERER_ENTWURF });
+  protected readonly entwurf = signal<Entwurf>(this.leererEntwurf());
   protected readonly fehler = signal('');
+
+  protected readonly kategorieEntwurf = signal<KategorieEntwurf>({ ...LEERE_KATEGORIE });
+  protected readonly kategorieFehler = signal('');
 
   protected readonly importMeldung = signal('');
   protected readonly importFehler = signal(false);
@@ -437,12 +624,72 @@ export default class EinstellungenPage {
   }
 
   protected farbeVon(id: FarbId): string {
-    return FARBEN.find((f) => f.id === id)?.bg ?? FARBEN[0].bg;
+    return farbe(id).bg;
+  }
+
+  /** Bei aktiven Kategorien schlägt ein neuer Artikel ohne Kategorie die Farbe von Sonstiges vor. */
+  private leererEntwurf(): Entwurf {
+    const e = this.store.kategorienEinstellung();
+    return { id: null, bezeichnung: '', preis: '', pfand: '', farbe: e.aktiv ? e.sonstigesFarbe : 'rot', kategorieId: null };
   }
 
   protected neuerEntwurf(): void {
-    this.entwurf.set({ ...LEERER_ENTWURF });
+    this.entwurf.set(this.leererEntwurf());
     this.fehler.set('');
+  }
+
+  /** Nur ein neuer Artikel übernimmt die Kategoriefarbe; bei bestehenden bleibt die gewählte Farbe. */
+  protected kategorieWaehlen(kategorieId: string | null): void {
+    const e = this.entwurf();
+    if (e.id) {
+      this.entwurf.set({ ...e, kategorieId });
+      return;
+    }
+    const k = this.store.kategorien().find((k) => k.id === kategorieId);
+    this.entwurf.set({ ...e, kategorieId, farbe: k?.farbe ?? this.store.kategorienEinstellung().sonstigesFarbe });
+  }
+
+  protected kategorienSchalten(aktiv: boolean): void {
+    this.store.kategorienEinstellen({ aktiv });
+    if (!this.entwurf().id) this.neuerEntwurf();
+    this.neueKategorie();
+  }
+
+  protected neueKategorie(): void {
+    this.kategorieEntwurf.set({ ...LEERE_KATEGORIE });
+    this.kategorieFehler.set('');
+  }
+
+  protected kategorieBearbeiten(k: Kategorie): void {
+    this.kategorieEntwurf.set({ id: k.id, sonstiges: false, bezeichnung: k.bezeichnung, farbe: k.farbe });
+    this.kategorieFehler.set('');
+  }
+
+  protected sonstigesBearbeiten(): void {
+    const farbe = this.store.kategorienEinstellung().sonstigesFarbe;
+    this.kategorieEntwurf.set({ id: null, sonstiges: true, bezeichnung: SONSTIGES, farbe });
+    this.kategorieFehler.set('');
+  }
+
+  protected kategorieSpeichern(): void {
+    const e = this.kategorieEntwurf();
+    if (e.sonstiges) {
+      this.store.kategorienEinstellen({ sonstigesFarbe: e.farbe });
+    } else {
+      const bezeichnung = e.bezeichnung.trim();
+      if (!bezeichnung) return this.kategorieFehler.set('Bitte eine Bezeichnung eingeben.');
+      this.store.kategorieSpeichern({ id: e.id ?? neueId(), bezeichnung, farbe: e.farbe });
+    }
+    this.neueKategorie();
+  }
+
+  protected kategorieLoeschen(k: Kategorie): void {
+    const anzahl = this.store.anzahlArtikelIn(k.id);
+    const folge = anzahl === 0 ? '' : anzahl === 1 ? ' 1 Artikel verliert seine Kategorie.' : ` ${anzahl} Artikel verlieren ihre Kategorie.`;
+    if (!confirm(`Kategorie „${k.bezeichnung}“ löschen?${folge}`)) return;
+    this.store.kategorieLoeschen(k.id);
+    if (this.kategorieEntwurf().id === k.id) this.neueKategorie();
+    if (this.entwurf().kategorieId === k.id) this.entwurf.set({ ...this.entwurf(), kategorieId: null });
   }
 
   protected bearbeiten(a: Artikel): void {
@@ -452,6 +699,7 @@ export default class EinstellungenPage {
       preis: centAlsEingabe(a.preis),
       pfand: a.pfand ? centAlsEingabe(a.pfand) : '',
       farbe: a.farbe,
+      kategorieId: kategorieVon(a, this.store.kategorien()),
     });
     this.fehler.set('');
     globalThis.scrollTo?.({ top: 0, behavior: 'smooth' });
@@ -474,7 +722,11 @@ export default class EinstellungenPage {
     if (preis === null) return this.fehler.set('Preis ist ungültig – z. B. 4,00 oder -2,00.');
     if (pfand === null || pfand < 0) return this.fehler.set('Pfand ist ungültig – z. B. 2,00 oder leer lassen.');
 
-    this.store.speichern({ id: e.id ?? neueId(), bezeichnung, preis, pfand, farbe: e.farbe });
+    // Bei ausgeschalteten Kategorien bleibt die gespeicherte Zuordnung unverändert erhalten.
+    const kategorieId = this.store.kategorienEinstellung().aktiv
+      ? e.kategorieId
+      : (this.store.artikel().find((a) => a.id === e.id)?.kategorieId ?? null);
+    this.store.speichern({ id: e.id ?? neueId(), bezeichnung, preis, pfand, farbe: e.farbe, kategorieId });
     this.neuerEntwurf();
   }
 
@@ -499,12 +751,15 @@ export default class EinstellungenPage {
     input.value = '';
     if (!datei) return;
     try {
-      const artikel = artikelAusImport(JSON.parse(await datei.text()));
-      if (!confirm(`${artikel.length} Artikel einlesen? Die aktuelle Liste wird ersetzt.`)) return;
-      this.store.ersetzen(artikel);
+      const daten = artikelAusImport(JSON.parse(await datei.text()));
+      const umfang =
+        `${daten.artikel.length} Artikel` + (daten.kategorien.length ? ` und ${daten.kategorien.length} Kategorien` : '');
+      if (!confirm(`${umfang} einlesen? Die aktuelle Liste wird ersetzt.`)) return;
+      this.store.ersetzen(daten);
       this.neuerEntwurf();
+      this.neueKategorie();
       this.importFehler.set(false);
-      this.importMeldung.set(`${artikel.length} Artikel eingelesen.`);
+      this.importMeldung.set(`${umfang} eingelesen.`);
     } catch (e) {
       this.importFehler.set(true);
       this.importMeldung.set(e instanceof SyntaxError ? 'Die Datei ist keine gültige JSON-Datei.' : (e as Error).message);

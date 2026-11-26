@@ -1,8 +1,19 @@
 import { Injectable, computed, effect, signal } from '@angular/core';
-import { Artikel, FARBEN, FarbId } from './model';
+import { ArtikelDaten, ArtikelExport } from './artikel-daten';
+import {
+  Artikel,
+  Kategorie,
+  KategorienEinstellung,
+  STANDARD_KATEGORIEN_EINSTELLUNG,
+  gruppen,
+  kategorieVon,
+  verschiebenInGruppe,
+} from './model';
 import { laden, speichern } from './speicher';
 
 const ARTIKEL_KEY = 'rsci-kassa.artikel';
+const KATEGORIEN_KEY = 'rsci-kassa.kategorien';
+const KATEGORIEN_EINSTELLUNG_KEY = 'rsci-kassa.kategorien-einstellung';
 const PIN_KEY = 'rsci-kassa.pin';
 export const STANDARD_PIN = '0000';
 
@@ -16,88 +27,96 @@ const BEISPIEL_ARTIKEL: Artikel[] = [
   { id: 'becher-retour', bezeichnung: 'Becher retour', preis: -200, pfand: 0, farbe: 'grau' },
 ];
 
-export interface ArtikelExport {
-  format: 'rsci-kassa-artikel';
-  version: 1;
-  exportiertAm: string;
-  artikel: Artikel[];
-}
-
-export function neueId(): string {
-  return globalThis.crypto?.randomUUID?.() ?? `a-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-/** Prüft und normalisiert eingelesene Artikel. Wirft mit verständlicher Meldung. */
-export function artikelAusImport(daten: unknown): Artikel[] {
-  const liste = Array.isArray(daten) ? daten : (daten as Partial<ArtikelExport> | null)?.artikel;
-  if (!Array.isArray(liste)) {
-    throw new Error('Die Datei enthält keine Artikelliste.');
-  }
-  const farbIds = new Set<string>(FARBEN.map((f) => f.id));
-  return liste.map((a: Partial<Artikel>, i) => {
-    const nr = i + 1;
-    if (typeof a?.bezeichnung !== 'string' || !a.bezeichnung.trim()) {
-      throw new Error(`Artikel ${nr}: Bezeichnung fehlt.`);
-    }
-    if (!Number.isInteger(a.preis)) {
-      throw new Error(`Artikel ${nr} („${a.bezeichnung}“): Preis ist ungültig.`);
-    }
-    return {
-      id: typeof a.id === 'string' && a.id ? a.id : neueId(),
-      bezeichnung: a.bezeichnung.trim(),
-      preis: a.preis as number,
-      pfand: Number.isInteger(a.pfand) ? (a.pfand as number) : 0,
-      farbe: (farbIds.has(a.farbe as string) ? a.farbe : 'rot') as FarbId,
-    };
-  });
-}
-
 @Injectable({ providedIn: 'root' })
 export class ArtikelStore {
   private readonly _artikel = signal<Artikel[]>(laden(ARTIKEL_KEY, BEISPIEL_ARTIKEL));
+  private readonly _kategorien = signal<Kategorie[]>(laden(KATEGORIEN_KEY, []));
+  private readonly _kategorienEinstellung = signal<KategorienEinstellung>({
+    ...STANDARD_KATEGORIEN_EINSTELLUNG,
+    ...laden<Partial<KategorienEinstellung>>(KATEGORIEN_EINSTELLUNG_KEY, {}),
+  });
   private readonly _pin = signal<string>(laden(PIN_KEY, STANDARD_PIN));
 
   readonly artikel = this._artikel.asReadonly();
+  readonly kategorien = this._kategorien.asReadonly();
+  readonly kategorienEinstellung = this._kategorienEinstellung.asReadonly();
+  readonly gruppen = computed(() => gruppen(this._artikel(), this._kategorien(), this._kategorienEinstellung()));
   readonly istStandardPin = computed(() => this._pin() === STANDARD_PIN);
 
   constructor() {
     effect(() => speichern(ARTIKEL_KEY, this._artikel()));
+    effect(() => speichern(KATEGORIEN_KEY, this._kategorien()));
+    effect(() => speichern(KATEGORIEN_EINSTELLUNG_KEY, this._kategorienEinstellung()));
     effect(() => speichern(PIN_KEY, this._pin()));
   }
 
+  /** Die Gruppe, in der ein Artikel gerade angezeigt wird (null = Sonstiges bzw. keine Gruppierung). */
+  private gruppeVon = (a: Artikel): string | null =>
+    this._kategorienEinstellung().aktiv ? kategorieVon(a, this._kategorien()) : null;
+
+  /** Wechselt ein bestehender Artikel die Gruppe, rutscht er ans Ende der neuen Gruppe. */
   speichern(artikel: Artikel): void {
-    this._artikel.update((liste) =>
-      liste.some((a) => a.id === artikel.id)
-        ? liste.map((a) => (a.id === artikel.id ? artikel : a))
-        : [...liste, artikel],
-    );
+    this._artikel.update((liste) => {
+      const alt = liste.find((a) => a.id === artikel.id);
+      if (!alt) return [...liste, artikel];
+      if (this.gruppeVon(alt) !== this.gruppeVon(artikel)) {
+        return [...liste.filter((a) => a.id !== artikel.id), artikel];
+      }
+      return liste.map((a) => (a.id === artikel.id ? artikel : a));
+    });
   }
 
   loeschen(id: string): void {
     this._artikel.update((liste) => liste.filter((a) => a.id !== id));
   }
 
+  /** Verschiebt innerhalb der angezeigten Gruppe. */
   verschieben(id: string, richtung: -1 | 1): void {
-    this._artikel.update((liste) => {
-      const i = liste.findIndex((a) => a.id === id);
-      const j = i + richtung;
-      if (i < 0 || j < 0 || j >= liste.length) return liste;
-      const neu = [...liste];
-      [neu[i], neu[j]] = [neu[j], neu[i]];
-      return neu;
-    });
+    this._artikel.update((liste) => verschiebenInGruppe(liste, id, richtung, this.gruppeVon));
   }
 
-  ersetzen(artikel: Artikel[]): void {
-    this._artikel.set(artikel);
+  kategorienEinstellen(aenderung: Partial<KategorienEinstellung>): void {
+    this._kategorienEinstellung.update((e) => ({ ...e, ...aenderung }));
+  }
+
+  kategorieSpeichern(kategorie: Kategorie): void {
+    this._kategorien.update((liste) =>
+      liste.some((k) => k.id === kategorie.id)
+        ? liste.map((k) => (k.id === kategorie.id ? kategorie : k))
+        : [...liste, kategorie],
+    );
+  }
+
+  /** Die Artikel bleiben erhalten und sind danach ohne Kategorie. */
+  kategorieLoeschen(id: string): void {
+    this._kategorien.update((liste) => liste.filter((k) => k.id !== id));
+    this._artikel.update((liste) =>
+      liste.map((a) => (a.kategorieId === id ? { ...a, kategorieId: null } : a)),
+    );
+  }
+
+  kategorieVerschieben(id: string, richtung: -1 | 1): void {
+    this._kategorien.update((liste) => verschiebenInGruppe(liste, id, richtung));
+  }
+
+  anzahlArtikelIn(kategorieId: string): number {
+    return this._artikel().filter((a) => a.kategorieId === kategorieId).length;
+  }
+
+  ersetzen(daten: ArtikelDaten): void {
+    this._artikel.set(daten.artikel);
+    this._kategorien.set(daten.kategorien);
+    this._kategorienEinstellung.set(daten.kategorienEinstellung);
   }
 
   exportieren(): ArtikelExport {
     return {
       format: 'rsci-kassa-artikel',
-      version: 1,
+      version: 2,
       exportiertAm: new Date().toISOString(),
       artikel: this._artikel(),
+      kategorien: this._kategorien(),
+      kategorienEinstellung: this._kategorienEinstellung(),
     };
   }
 

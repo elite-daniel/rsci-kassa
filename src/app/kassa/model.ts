@@ -16,6 +16,10 @@ export const FARBEN = [
 
 export type FarbId = (typeof FARBEN)[number]['id'];
 
+export function farbe(id: FarbId) {
+  return FARBEN.find((f) => f.id === id) ?? FARBEN[0];
+}
+
 export interface Artikel {
   id: string;
   bezeichnung: string;
@@ -24,6 +28,82 @@ export interface Artikel {
   /** 0 = kein Pfand. */
   pfand: Cent;
   farbe: FarbId;
+  /** Fehlt, ist null oder zeigt auf eine gelöschte Kategorie = ohne Kategorie (→ Sonstiges). */
+  kategorieId?: string | null;
+}
+
+export interface Kategorie {
+  id: string;
+  bezeichnung: string;
+  farbe: FarbId;
+}
+
+export interface KategorienEinstellung {
+  /** Kategorien zuordnen und die Kassa danach gruppieren. Aus = alles nur ausgeblendet. */
+  aktiv: boolean;
+  titelAnzeigen: boolean;
+  sonstigesFarbe: FarbId;
+}
+
+export const STANDARD_KATEGORIEN_EINSTELLUNG: KategorienEinstellung = {
+  aktiv: false,
+  titelAnzeigen: true,
+  sonstigesFarbe: 'grau',
+};
+
+export const SONSTIGES = 'Sonstiges';
+
+/** Eine Gruppe von Artikelknöpfen. kategorieId null = Sonstiges (bzw. alle, wenn Kategorien aus sind). */
+export interface Gruppe {
+  kategorieId: string | null;
+  titel: string | null;
+  farbe: FarbId;
+  artikel: Artikel[];
+}
+
+/** Die Kategorie, zu der ein Artikel tatsächlich zählt – null, wenn keine (mehr) existiert. */
+export function kategorieVon(artikel: Artikel, kategorien: readonly Kategorie[]): string | null {
+  const id = artikel.kategorieId ?? null;
+  return id !== null && kategorien.some((k) => k.id === id) ? id : null;
+}
+
+/** Artikel für die Anzeige: bei aktiven Kategorien in Kategorie-Reihenfolge gruppiert, Sonstiges am Ende,
+ *  leere Gruppen weggelassen. Innerhalb einer Gruppe gilt die Artikel-Reihenfolge. */
+export function gruppen(
+  artikel: readonly Artikel[],
+  kategorien: readonly Kategorie[],
+  einstellung: KategorienEinstellung,
+): Gruppe[] {
+  if (!einstellung.aktiv) {
+    return artikel.length ? [{ kategorieId: null, titel: null, farbe: einstellung.sonstigesFarbe, artikel: [...artikel] }] : [];
+  }
+  const alle: Gruppe[] = [
+    ...kategorien.map((k) => ({ kategorieId: k.id, titel: k.bezeichnung, farbe: k.farbe, artikel: [] as Artikel[] })),
+    { kategorieId: null, titel: SONSTIGES, farbe: einstellung.sonstigesFarbe, artikel: [] },
+  ];
+  for (const a of artikel) {
+    const id = kategorieVon(a, kategorien);
+    alle.find((g) => g.kategorieId === id)!.artikel.push(a);
+  }
+  return alle.filter((g) => g.artikel.length > 0);
+}
+
+/** Tauscht das Element mit dem nächsten Nachbarn derselben Gruppe in die gewünschte Richtung. */
+export function verschiebenInGruppe<T extends { id: string }>(
+  liste: readonly T[],
+  id: string,
+  richtung: -1 | 1,
+  gruppeVon: (t: T) => string | null = () => null,
+): T[] {
+  const i = liste.findIndex((t) => t.id === id);
+  if (i < 0) return [...liste];
+  const gruppe = gruppeVon(liste[i]);
+  let j = i + richtung;
+  while (j >= 0 && j < liste.length && gruppeVon(liste[j]) !== gruppe) j += richtung;
+  if (j < 0 || j >= liste.length) return [...liste];
+  const neu = [...liste];
+  [neu[i], neu[j]] = [neu[j], neu[i]];
+  return neu;
 }
 
 /** Ein bonierter Artikel des aktuellen Gastes. Hält eine Kopie des Artikels,

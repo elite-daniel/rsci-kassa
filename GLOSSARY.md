@@ -4,6 +4,10 @@
 
 **Artikel**: Etwas, das am Stand verkauft oder zurückgenommen wird. Hat eine Bezeichnung, einen Preis, optional ein Pfand und eine Knopffarbe. Der Preis darf negativ sein.
 
+**Kategorie**: Eine benannte Gruppe von Artikeln (z. B. „Getränke“, „Essen“) mit eigener Farbe und eigener Position in der Reihenfolge der Kategorien. Ein Artikel gehört zu höchstens einer Kategorie. Neue Artikel übernehmen die Farbe ihrer Kategorie als Vorschlag.
+
+**Sonstiges**: Die Gruppe, in der auf der Kassa alle Artikel ohne Kategorie stehen, immer am Ende. Sie ist keine Kategorie, die man anlegen, umbenennen oder löschen kann. Nur ihre Farbe ist einstellbar.
+
 **Pfand**: Ein Betrag, der an einem Artikel hängt und bei jedem Bonieren dieses Artikels automatisch mitberechnet wird. Wird als eigene Zeile angezeigt, nicht in den Artikelpreis eingerechnet.
 
 **Pfandrückgabe**: Ein gewöhnlicher Artikel mit negativem Preis (z. B. „Becher retour −€ 2,00"). Kein eigenes Konzept neben dem Artikel.

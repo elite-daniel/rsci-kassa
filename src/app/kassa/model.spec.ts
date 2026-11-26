@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { Artikel, bonieren, euro, mengeAendern, parseEuro, rueckgeld, summe, zeilen } from './model';
+import {
+  Artikel,
+  Kategorie,
+  KategorienEinstellung,
+  bonieren,
+  euro,
+  gruppen,
+  mengeAendern,
+  parseEuro,
+  rueckgeld,
+  summe,
+  verschiebenInGruppe,
+  zeilen,
+} from './model';
 
 const bier: Artikel = { id: 'bier', bezeichnung: 'Bier', preis: 400, pfand: 200, farbe: 'rot' };
 const spritzer: Artikel = { id: 'spritzer', bezeichnung: 'Spritzer', preis: 350, pfand: 200, farbe: 'rot' };
@@ -80,5 +93,59 @@ describe('parseEuro / euro', () => {
 
   it('formatiert österreichisch', () => {
     expect(euro(1250).replace(/\s/g, ' ')).toBe('€ 12,50');
+  });
+});
+
+describe('gruppen', () => {
+  const getraenke: Kategorie = { id: 'g', bezeichnung: 'Getränke', farbe: 'blau' };
+  const essen: Kategorie = { id: 'e', bezeichnung: 'Essen', farbe: 'gold' };
+  const an: KategorienEinstellung = { aktiv: true, titelAnzeigen: true, sonstigesFarbe: 'lila' };
+  const artikel: Artikel[] = [
+    { ...wuerstel, kategorieId: 'e' },
+    { ...bier, kategorieId: 'g' },
+    becherRetour,
+    { ...spritzer, kategorieId: 'g' },
+  ];
+
+  it('zeigt bei ausgeschalteten Kategorien eine Gruppe ohne Titel in Artikel-Reihenfolge', () => {
+    const g = gruppen(artikel, [getraenke, essen], { ...an, aktiv: false });
+    expect(g).toHaveLength(1);
+    expect(g[0].titel).toBeNull();
+    expect(g[0].artikel.map((a) => a.id)).toEqual(['wuerstel', 'bier', 'retour', 'spritzer']);
+  });
+
+  it('gruppiert in Kategorie-Reihenfolge mit Sonstiges am Ende', () => {
+    const g = gruppen(artikel, [getraenke, essen], an);
+    expect(g.map((x) => [x.titel, x.farbe, x.artikel.map((a) => a.id)])).toEqual([
+      ['Getränke', 'blau', ['bier', 'spritzer']],
+      ['Essen', 'gold', ['wuerstel']],
+      ['Sonstiges', 'lila', ['retour']],
+    ]);
+  });
+
+  it('lässt leere Gruppen weg und zählt Artikel gelöschter Kategorien zu Sonstiges', () => {
+    const g = gruppen([{ ...bier, kategorieId: 'weg' }], [getraenke], an);
+    expect(g.map((x) => x.titel)).toEqual(['Sonstiges']);
+  });
+});
+
+describe('verschiebenInGruppe', () => {
+  const liste = [
+    { id: 'a', g: 'x' },
+    { id: 'b', g: 'y' },
+    { id: 'c', g: 'x' },
+  ];
+  const gruppeVon = (t: { g: string }) => t.g;
+
+  it('tauscht mit dem nächsten Nachbarn derselben Gruppe', () => {
+    expect(verschiebenInGruppe(liste, 'c', -1, gruppeVon).map((t) => t.id)).toEqual(['c', 'b', 'a']);
+  });
+
+  it('bleibt am Rand der Gruppe stehen', () => {
+    expect(verschiebenInGruppe(liste, 'b', 1, gruppeVon).map((t) => t.id)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('verschiebt ohne Gruppen einfach um eins', () => {
+    expect(verschiebenInGruppe(liste, 'a', 1).map((t) => t.id)).toEqual(['b', 'a', 'c']);
   });
 });

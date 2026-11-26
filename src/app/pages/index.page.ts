@@ -2,7 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ArtikelStore } from '../kassa/artikel-store';
 import { GastStore } from '../kassa/gast-store';
-import { Artikel, FARBEN, euro } from '../kassa/model';
+import { euro, farbe } from '../kassa/model';
 
 const MUENZEN_SCHEINE = [50, 100, 200, 500, 1000, 2000, 5000];
 
@@ -11,20 +11,36 @@ const MUENZEN_SCHEINE = [50, 100, 200, 500, 1000, 2000, 5000];
   imports: [RouterLink],
   template: `
     <section class="artikel" aria-label="Artikel">
-      @for (a of artikelStore.artikel(); track a.id) {
-        <button
-          class="artikel-knopf"
-          [style.background]="farbe(a).bg"
-          [style.color]="farbe(a).fg"
-          [class.hell]="a.farbe === 'weiss'"
-          (click)="gast.bonieren(a)"
-        >
-          <span class="name">{{ a.bezeichnung }}</span>
-          <span class="preis tabular">{{ euro(a.preis) }}</span>
-          @if (a.pfand) {
-            <span class="pfand tabular">+ {{ euro(a.pfand) }} Pfand</span>
+      @for (g of artikelStore.gruppen(); track g.kategorieId) {
+        <div class="gruppe">
+          @if (g.titel && artikelStore.kategorienEinstellung().titelAnzeigen) {
+            <h2
+              class="gruppen-titel"
+              [style.background]="farbe(g.farbe).bg"
+              [style.color]="farbe(g.farbe).fg"
+              [class.hell]="g.farbe === 'weiss'"
+            >
+              {{ g.titel }}
+            </h2>
           }
-        </button>
+          <div class="knoepfe">
+            @for (a of g.artikel; track a.id) {
+              <button
+                class="artikel-knopf"
+                [style.background]="farbe(a.farbe).bg"
+                [style.color]="farbe(a.farbe).fg"
+                [class.hell]="a.farbe === 'weiss'"
+                (click)="gast.bonieren(a)"
+              >
+                <span class="name">{{ a.bezeichnung }}</span>
+                <span class="preis tabular">{{ euro(a.preis) }}</span>
+                @if (a.pfand) {
+                  <span class="pfand tabular">+ {{ euro(a.pfand) }} Pfand</span>
+                }
+              </button>
+            }
+          </div>
+        </div>
       } @empty {
         <div class="leer card">
           <p>Noch keine Artikel angelegt.</p>
@@ -101,13 +117,40 @@ const MUENZEN_SCHEINE = [50, 100, 200, 500, 1000, 2000, 5000];
 
     /* ---------- Artikel ---------- */
     .artikel {
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      padding: 14px;
+      overflow-y: auto;
+    }
+    .gruppe {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .knoepfe {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
       grid-auto-rows: minmax(120px, auto);
-      align-content: start;
       gap: 12px;
-      padding: 14px;
-      overflow-y: auto;
+    }
+    /* Titel direkt über seinen Knöpfen, bleibt beim Scrollen oben stehen. */
+    .gruppen-titel {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      margin: 0;
+      padding: 6px 14px;
+      border-radius: 10px;
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    }
+    .gruppen-titel.hell {
+      box-shadow: inset 0 0 0 2px var(--line), 0 2px 8px rgba(0, 0, 0, 0.08);
     }
     .artikel-knopf {
       display: flex;
@@ -337,7 +380,7 @@ const MUENZEN_SCHEINE = [50, 100, 200, 500, 1000, 2000, 5000];
         grid-template-columns: 1fr;
         grid-template-rows: 1fr auto;
       }
-      .artikel {
+      .knoepfe {
         grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
         grid-auto-rows: minmax(96px, auto);
       }
@@ -356,9 +399,7 @@ export default class KassaPage {
   protected readonly muenzenScheine = MUENZEN_SCHEINE;
   protected readonly betragAbs = computed(() => Math.abs(this.gast.summe()));
 
-  protected farbe(a: Artikel) {
-    return FARBEN.find((f) => f.id === a.farbe) ?? FARBEN[0];
-  }
+  protected readonly farbe = farbe;
 
   protected geldLabel(cent: number): string {
     return cent < 100 ? `${(cent / 100).toFixed(2).replace('.', ',')}` : `${cent / 100}`;

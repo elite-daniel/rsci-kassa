@@ -8,6 +8,7 @@
     { "id": "wasser", "bezeichnung": "Wasser", "preis": 200, "pfand": 200, "farbe": "blau", "kategorieId": "getraenke" },
     { "id": "wuerstel", "bezeichnung": "Würstel", "preis": 400, "pfand": 0, "farbe": "dunkelrot", "kategorieId": "speisen" },
     { "id": "toast", "bezeichnung": "Toast", "preis": 500, "pfand": 0, "farbe": "lila", "kategorieId": "speisen" },
+    { "id": "brezel", "bezeichnung": "Brezel", "preis": 200, "pfand": 0, "farbe": "rot", "kategorieId": "speisen" },
     { "id": "kaffee", "bezeichnung": "Kaffee", "preis": 250, "pfand": 0, "farbe": "schwarz", "kategorieId": "getraenke" },
     { "id": "becher-retour", "bezeichnung": "Becher retour", "preis": -200, "pfand": 0, "farbe": "grau", "kategorieId": "pfand" }
   ],
